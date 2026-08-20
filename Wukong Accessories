@@ -1,0 +1,197 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local GetAsset = getcustomasset or getsynasset
+
+
+local function AttachAccessory(accObject, character, isStaff)
+	if not character then return end
+	
+	
+	if accObject:IsA("Humanoid") or accObject:IsA("Script") or accObject:IsA("LocalScript") then return end
+
+	local accName = accObject.Name
+	local targetPartName = "Torso"
+
+	
+	if isStaff then
+		targetPartName = "Right Arm"
+	else
+		if accName == "Hair" or accName == "Hat" then
+			targetPartName = "Head"
+		elseif accName == "LeftShoulder" then
+			targetPartName = "Left Arm"
+		elseif accName == "RightShoulder" then
+			targetPartName = "Right Arm"
+		elseif accName == "Waist" or accName == "BodyFront" then
+			targetPartName = "Torso"
+		end
+	end
+
+	local targetPart = character:FindFirstChild(targetPartName)
+	if not targetPart then return end
+
+	local clone = accObject:Clone()
+	
+	-- ANTI-FLING PROTOCOL
+	local safeWrapper = Instance.new("Model")
+	safeWrapper.Name = "SafeWukong_" .. accName
+	
+	local tag = Instance.new("BoolValue")
+	tag.Name = "IsWukongAccessory"
+	tag.Parent = safeWrapper
+
+	local parts = {}
+	local handle = clone:FindFirstChild("Handle")
+	
+	for _, desc in ipairs(clone:GetDescendants()) do
+		if desc:IsA("BasePart") then
+			table.insert(parts, desc)
+			
+			desc.Anchored = true 
+			desc.CanCollide = false
+			desc.Massless = true
+			desc.CanTouch = false
+			desc.CanQuery = false
+			desc.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+			
+			
+			for _, child in ipairs(desc:GetChildren()) do
+				if child:IsA("JointInstance") or child:IsA("Constraint") or child:IsA("BodyMover") then
+					child:Destroy()
+				end
+			end
+			
+			
+			if desc.Name:lower():match("hitbox") or (isStaff and desc.Name ~= "Handle" and not desc:FindFirstChildOfClass("SpecialMesh")) then
+				desc.Transparency = 1
+			end
+			
+		elseif desc:IsA("Humanoid") or desc:IsA("BaseScript") then
+			desc:Destroy()
+		end
+	end
+
+	if clone:IsA("BasePart") then
+		table.insert(parts, clone)
+		clone.Anchored = true
+		clone.CanCollide = false
+		clone.Massless = true
+		clone.CanTouch = false
+		clone.CanQuery = false
+		clone.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+	end
+
+	if #parts == 0 then return end
+	
+	if not handle or not handle:IsA("BasePart") then
+		handle = parts[1]
+	end
+
+	
+	for _, part in ipairs(parts) do
+		part.Parent = safeWrapper
+		if part ~= handle then
+			local innerWeld = Instance.new("WeldConstraint")
+			innerWeld.Part0 = handle
+			innerWeld.Part1 = part
+			innerWeld.Parent = part
+		end
+	end
+
+	-- PENYESUAIAN POSISI (CFRAME)
+	if isStaff then
+		-- Geser ke bawah ke arah telapak tangan (Y: -1) dan putar agar menunjuk ke depan (X: -60 derajat)
+		-- Kamu bisa mengubah angka math.rad(-60) menjadi -90 atau 0 jika posisinya masih kurang pas di matamu
+		handle.CFrame = targetPart.CFrame * CFrame.new(0, -1, 0) * CFrame.Angles(math.rad(-90), 1, -1)
+	else
+		local handleAttachment = handle:FindFirstChildOfClass("Attachment")
+		local targetAttachment = handleAttachment and targetPart:FindFirstChild(handleAttachment.Name)
+
+		if handleAttachment and targetAttachment then
+			handle.CFrame = targetAttachment.WorldCFrame * handleAttachment.CFrame:Inverse()
+		else
+			handle.CFrame = targetPart.CFrame
+		end
+	end
+
+	
+	safeWrapper.Parent = character
+
+	
+	local mainWeld = Instance.new("WeldConstraint")
+	mainWeld.Part0 = targetPart
+	mainWeld.Part1 = handle
+	mainWeld.Parent = handle
+
+	
+	for _, part in ipairs(parts) do
+		part.Anchored = false
+	end
+end
+
+local function ApplyWukongSet()
+	local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	if not character then return end
+
+	
+	character:WaitForChild("Torso", 5)
+	character:WaitForChild("Head", 5)
+	character:WaitForChild("Left Arm", 5)
+	character:WaitForChild("Right Arm", 5)
+
+	local accFileName = "Wukong_Accessories.rbxmx"
+	local accUrl = "https://raw.githubusercontent.com/Scripterblabla/FECLIENT/refs/heads/main/Wukong%20Accessories.Rbxmx"
+	if not isfile(accFileName) then writefile(accFileName, game:HttpGet(accUrl)) end
+
+	local staffFileName = "Wukong_Staff.rbxmx"
+	local staffUrl = "https://raw.githubusercontent.com/Scripterblabla/FECLIENT/refs/heads/main/Wukong%20Staff.Rbxmx"
+	if not isfile(staffFileName) then writefile(staffFileName, game:HttpGet(staffUrl)) end
+
+	local accObjects = game:GetObjects(GetAsset(accFileName))
+	local staffObjects = game:GetObjects(GetAsset(staffFileName))
+
+	
+	for _, child in ipairs(character:GetChildren()) do
+		if child:FindFirstChild("IsWukongAccessory") then
+			child:Destroy()
+		end
+	end
+
+	
+	for _, obj in ipairs(accObjects) do
+		if obj:IsA("Folder") or (obj:IsA("Model") and not obj:FindFirstChild("Handle")) then
+			for _, child in ipairs(obj:GetChildren()) do
+				AttachAccessory(child, character, false)
+			end
+		else
+			AttachAccessory(obj, character, false)
+		end
+	end
+
+	
+	for _, obj in ipairs(staffObjects) do
+		if obj:IsA("Folder") or (obj:IsA("Model") and not obj:FindFirstChild("Handle")) then
+			for _, child in ipairs(obj:GetChildren()) do
+				AttachAccessory(child, character, true)
+			end
+		else
+			AttachAccessory(obj, character, true)
+		end
+	end
+
+	game:GetService("StarterGui"):SetCore("SendNotification", {
+		Title = "Wukong Client",
+		Text = "Aksesoris & Staff (Fix Posisi) berhasil dipasang!",
+		Duration = 4
+	})
+end
+
+
+task.spawn(ApplyWukongSet)
+
+
+LocalPlayer.CharacterAdded:Connect(function()
+	task.wait(1)
+	ApplyWukongSet()
+end)
+
