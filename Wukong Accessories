@@ -32,7 +32,7 @@ local function AttachAccessory(accObject, character, isStaff)
 
 	local clone = accObject:Clone()
 	
-	-- ANTI-FLING PROTOCOL
+	
 	local safeWrapper = Instance.new("Model")
 	safeWrapper.Name = "SafeWukong_" .. accName
 	
@@ -98,10 +98,10 @@ local function AttachAccessory(accObject, character, isStaff)
 		end
 	end
 
-	-- PENYESUAIAN POSISI (CFRAME)
+	
 	if isStaff then
-		-- Geser ke bawah ke arah telapak tangan (Y: -1) dan putar agar menunjuk ke depan (X: -60 derajat)
-		-- Kamu bisa mengubah angka math.rad(-60) menjadi -90 atau 0 jika posisinya masih kurang pas di matamu
+		
+		
 		handle.CFrame = targetPart.CFrame * CFrame.new(0, -1, 0) * CFrame.Angles(math.rad(-90), 1, -1)
 	else
 		local handleAttachment = handle:FindFirstChildOfClass("Attachment")
@@ -181,7 +181,7 @@ local function ApplyWukongSet()
 
 	game:GetService("StarterGui"):SetCore("SendNotification", {
 		Title = "Wukong Client",
-		Text = "Aksesoris & Staff (Fix Posisi) berhasil dipasang!",
+		Text = "Made By Scripterblabla",
 		Duration = 4
 	})
 end
