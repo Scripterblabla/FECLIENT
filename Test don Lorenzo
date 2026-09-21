@@ -1,0 +1,122 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+if not isfile("DonLorenzoOvertime.rbxmx") then
+	writefile("DonLorenzoOvertime.rbxmx", game:HttpGet("https://github.com/Scripterblabla/FECLIENT/raw/refs/heads/main/Don%20Lorenzo%20Overtime%20.Rbxmx"))
+end
+
+if not isfile("AzureBall.rbxmx") then
+	writefile("AzureBall.rbxmx", game:HttpGet("https://github.com/Scripterblabla/Shidou-Blue-lock/raw/refs/heads/main/Azure%20Ball.Rbxmx"))
+end
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/ian49972/Animator/refs/heads/main/RobAnimator"))()
+
+local AnimAsset = game:GetObjects(getcustomasset("DonLorenzoOvertime.rbxmx"))[1]
+AnimAsset.Parent = workspace
+local overtimeAnim = AnimAsset:IsA("KeyframeSequence") and AnimAsset or AnimAsset:FindFirstChildWhichIsA("KeyframeSequence", true)
+
+local animLength = 0
+if overtimeAnim then
+	for _, kf in pairs(overtimeAnim:GetKeyframes()) do
+		if kf.Time > animLength then
+			animLength = kf.Time
+		end
+	end
+end
+if animLength == 0 then animLength = 6 end
+
+local BallAsset = game:GetObjects(getcustomasset("AzureBall.rbxmx"))[1]
+BallAsset.Parent = workspace
+
+local tool = Instance.new("Tool")
+tool.Name = "Overtime"
+tool.RequiresHandle = false
+tool.CanBeDropped = false
+tool.Parent = player:WaitForChild("Backpack")
+
+local debounce = false
+
+local PlayerModule = require(player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"))
+local Controls = PlayerModule:GetControls()
+
+tool.Activated:Connect(function()
+	if debounce then
+		return
+	end
+	debounce = true
+
+	local character = player.Character
+	if not character then
+		debounce = false
+		return
+	end
+
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+
+	if not humanoid or not hrp then
+		debounce = false
+		return
+	end
+
+	Controls:Disable()
+	local oldSpeed = humanoid.WalkSpeed
+	local oldJump = humanoid.JumpPower or humanoid.JumpHeight
+	
+	humanoid.WalkSpeed = 0
+	if humanoid.UseJumpPower then
+		humanoid.JumpPower = 0
+	else
+		humanoid.JumpHeight = 0
+	end
+
+	task.spawn(function()
+		pcall(function()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/Scripterblabla/FECLIENT/refs/heads/main/Don%20Overtime%20Flow%20cmr"))()
+		end)
+	end)
+
+	local ballTemplate = BallAsset.Name == "Ball" and BallAsset or BallAsset:FindFirstChild("Ball")
+	local ball
+
+	if ballTemplate then
+		ball = ballTemplate:Clone()
+		ball.Parent = character
+		ball.Anchored = false
+		ball.CFrame = hrp.CFrame
+
+		local motor = ball:FindFirstChildWhichIsA("Motor6D", true)
+		if motor then
+			motor.Part0 = hrp
+		end
+	end
+
+	task.wait(0.4)
+
+	local anim = PlayKeyframeSequence(character, overtimeAnim, 1)
+
+	task.wait(animLength)
+
+	if anim then
+		anim:Stop()
+		anim:RestoreAnimator()
+	end
+	
+	task.wait(0.5)
+	camera.FieldOfView = 70
+
+	if ball then
+		ball:Destroy()
+	end
+
+	Controls:Enable()
+	humanoid.WalkSpeed = oldSpeed
+	if humanoid.UseJumpPower then
+		humanoid.JumpPower = oldJump
+	else
+		humanoid.JumpHeight = oldJump
+	end
+
+	debounce = false
+end)
